@@ -376,7 +376,7 @@
 
                                                                         <tr style="font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; margin: 0; padding: 0;">
                                                                             <td style="border-top-width: 3px; border-top-style: solid; border-top-color: #ECECEC; vertical-align: top; color: #252525; font-size: 14px; line-height: 23px; width: 40%; font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; margin: 0; padding: 10px 0;" valign="top">
-                                                                                <a href="{{ pdf.url }} class="item" style="font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; margin: 0; padding: 0; {% if pdf.Matches.count() < 1 %}text-decoration: none; color:#666;{% endif %}">
+                                                                                <a href="{{ pdf.url }}" class="item" style="font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif; margin: 0; padding: 0; {% if pdf.Matches.count() < 1 %}text-decoration: none; color:#666;{% endif %}">
                                                                                    {{ basename(pdf.url) }}
                                                                             </a><br/>
                                                                         </td>
