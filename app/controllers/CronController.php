@@ -11,7 +11,7 @@ class CronController extends _BaseController {
 
     }
 
-    public function analysePdfsAction() {
+        public function analysePdfsAction() {
 
         self::analysePdfs();
 //        $this->response->redirect();
@@ -68,8 +68,13 @@ class CronController extends _BaseController {
         $di = \Phalcon\DI::getDefault();
         $config = $di->getConfig();
         $logger = $di->getLogger();
-        $unanalysedPdfs = \Aiden\Models\Pdfs::find('id = 19977');
+        $unanalysedPdfs = \Aiden\Models\Pdfs::find(
+            [
+                'conditions' => 'last_checked IS NULL LIMIT 1'
+            ]
+        );
                 foreach ($unanalysedPdfs as $unanalysedPdf) {
+                    echo $unanalysedPdf->id . '<br>';
             // Get PDF output
             $output = \Aiden\Classes\SwissKnife::getOutput($unanalysedPdf->url);
             if ($output === false) {
@@ -110,7 +115,11 @@ class CronController extends _BaseController {
 
                 self::checkPages($unanalysedPdf, $pages);
                 $unanalysedPdf->last_checked = date("Y-m-d H:i:s");
-                $unanalysedPdf->save();
+                if($unanalysedPdf->save()){
+                    echo 'SAVED <BR>';
+                }else{
+                    var_dump($unanalysedPdf->getMessages());
+                }
             }
             catch (\Exception $e)
             {
@@ -409,7 +418,8 @@ class CronController extends _BaseController {
             $postFields['to'] = $users[0]->email;
         }
 
-
+        var_dump($postFields);
+        /*
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
         curl_setopt($ch, CURLOPT_USERPWD, 'api:' . $config->application->mailgunApiKey);
@@ -455,7 +465,7 @@ class CronController extends _BaseController {
         }
 
 
-
+        */
     }
 
 }

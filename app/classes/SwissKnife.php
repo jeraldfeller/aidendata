@@ -110,7 +110,12 @@ class SwissKnife {
     public static function getDomainFromUrl($url) {
 
         $urlobj = parse_url($url);
-        $domain = $urlobj['host'];
+        if(isset($urlobj['host'])){
+            $domain = $urlobj['host'];
+        }else{
+            return false;
+        }
+
         
         if (!isset($urlobj['host'])) {
             echo $url;
