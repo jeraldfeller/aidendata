@@ -2,52 +2,58 @@
 
 namespace Aiden\Controllers;
 
-class CronController extends _BaseController {
+class CronController extends _BaseController
+{
 
-    public function processPdfQueueAction() {
+    public function processPdfQueueAction()
+    {
 
         self::processPdfQueue();
         $this->response->redirect();
 
     }
 
-        public function analysePdfsAction() {
+    public function analysePdfsAction()
+    {
 
         self::analysePdfs();
 //        $this->response->redirect();
 
     }
 
-    public function scrapeSourcesAction() {
+    public function scrapeSourcesAction()
+    {
 
         $this->dispatcher->forward(['controller' => 'scrape', 'action' => 'index']);
 
     }
 
-    public function emailMatchesAction() {
+    public function emailMatchesAction()
+    {
         self::emailMatches();
-      //  $this->response->redirect();
+        //  $this->response->redirect();
     }
 
     /**
      * Takes all unprocessed `matches` and generates a page that we'll later file_get_contents
      * so we can send it to users by email
      */
-    public function generateDigestAction() {
+    public function generateDigestAction()
+    {
 
         set_time_limit(3600);
         $di = \Phalcon\DI::getDefault();
 
         // Retrieve all ScrapeSources that have unprocessed matches
         $phql = "SELECT [Aiden\Models\ScrapeSources].*"
-                . " FROM [Aiden\Models\ScrapeSources]"
-                . " INNER JOIN [Aiden\Models\Pdfs]"
-                . " ON [Aiden\Models\Pdfs].scrape_sources_id = [Aiden\Models\ScrapeSources].id"
-                . " INNER JOIN [Aiden\Models\Matches]"
-                . " ON [Aiden\Models\Matches].pdf_id = [Aiden\Models\Pdfs].id"
-                . " WHERE 1=1"
-                . " AND [Aiden\Models\Matches].processed = 0"
-                . " GROUP BY [Aiden\Models\ScrapeSources].id";
+            . " FROM [Aiden\Models\ScrapeSources]"
+            . " INNER JOIN [Aiden\Models\Pdfs]"
+            . " ON [Aiden\Models\Pdfs].scrape_sources_id = [Aiden\Models\ScrapeSources].id"
+            . " INNER JOIN [Aiden\Models\Matches]"
+            . " ON [Aiden\Models\Matches].pdf_id = [Aiden\Models\Pdfs].id"
+            . " WHERE 1=1"
+            . " AND [Aiden\Models\Matches].processed = 0"
+            . " GROUP BY [Aiden\Models\ScrapeSources].id";
 
         $scrapeSources = $this->modelsManager->executeQuery($phql);
 
@@ -62,19 +68,21 @@ class CronController extends _BaseController {
     /**
      * Checks downloaded PDFs for keywords
      */
-    public static function analysePdfs() {
+    public static function analysePdfs()
+    {
 
 
+        var_dump('analyse');
         $di = \Phalcon\DI::getDefault();
         $config = $di->getConfig();
         $logger = $di->getLogger();
         $unanalysedPdfs = \Aiden\Models\Pdfs::find(
             [
-                'conditions' => 'last_checked IS NULL LIMIT 1'
+                'conditions' => 'checksum IS NULL'
             ]
         );
-                foreach ($unanalysedPdfs as $unanalysedPdf) {
-                    echo $unanalysedPdf->id . '<br>';
+        foreach ($unanalysedPdfs as $unanalysedPdf) {
+            echo $unanalysedPdf->id . '<br>';
             // Get PDF output
             $output = \Aiden\Classes\SwissKnife::getOutput($unanalysedPdf->url);
             if ($output === false) {
@@ -92,17 +100,15 @@ class CronController extends _BaseController {
 
                 $message = sprintf('Set checksum for PDF [%s] to [%s]', $unanalysedPdf->id, $pdfChecksum);
                 $logger->debug($message);
-            }
-            else {
+            } else {
 
                 $message = sprintf('Could not set checksum for PDF from [%s] (%s)'
-                        , $unanalysedPdf->url, print_r($unanalysedPdf->getMessages(), true));
+                    , $unanalysedPdf->url, print_r($unanalysedPdf->getMessages(), true));
                 $logger->debug($message);
                 continue;
             }
 
-            try
-            {
+            try {
 
                 var_dump('try');
                 // Try to parse the PDF. Might need to find another way for huge PDFs (100MB+)
@@ -115,19 +121,16 @@ class CronController extends _BaseController {
 
                 self::checkPages($unanalysedPdf, $pages);
                 $unanalysedPdf->last_checked = date("Y-m-d H:i:s");
-                if($unanalysedPdf->save()){
+                if ($unanalysedPdf->save()) {
                     echo 'SAVED <BR>';
-                }else{
+                } else {
                     var_dump($unanalysedPdf->getMessages());
                 }
-            }
-            catch (\Exception $e)
-            {
+            } catch (\Exception $e) {
                 // If PDF is secured, try to unsecure it using ghostscript
                 if ($e->getMessage() === 'Secured pdf file are currently not supported.') {
 
-                    try
-                    {
+                    try {
 
                         $tempInputFilePath = tempnam('/tmp', 'secpdf-input');
                         $tempOutputFilePath = tempnam('/tmp', 'secpdf-output');
@@ -143,15 +146,14 @@ class CronController extends _BaseController {
 
                             // Unlock PDF permissions with Ghostscript
                             $command = sprintf('gs -q -dNOPAUSE -dBATCH -sDEVICE=pdfwrite -sOutputFile=%s -c .setpdfwrite -f %s'
-                                    , $tempOutputFilePath, $tempInputFilePath);
+                                , $tempOutputFilePath, $tempInputFilePath);
                             exec($command);
 
                             if (!file_exists($tempOutputFilePath)) {
 
                                 $message = sprintf('Could not remove security from PDF [%s]', $unanalysedPdf->url);
                                 $logger->warning($message);
-                            }
-                            else {
+                            } else {
 
                                 $pdfParser = new \Smalot\PdfParser\Parser();
                                 $pdfObject = $pdfParser->parseFile($tempOutputFilePath);
@@ -160,35 +162,27 @@ class CronController extends _BaseController {
                                 $unanalysedPdf->last_checked = date("Y-m-d H:i:s");
                                 $unanalysedPdf->save();
                             }
-                        }
-                        else {
+                        } else {
 
                             $message = sprintf('Could not remove security from PDF [%s] as input and/or output file could not be generated'
-                                    , $unanalysedPdf->url);
+                                , $unanalysedPdf->url);
                             throw \Exception($message);
                         }
-                    }
-                    catch (\Exception $ex)
-                    {
+                    } catch (\Exception $ex) {
 
                         $message = sprintf('PDF [%s] threw an error (%s) (I)', $unanalysedPdf->url, $ex->getMessage());
                         $logger->warning($message);
-                    }
-                    finally
-                    {
+                    } finally {
 
                         unlink($tempInputFilePath);
                         unlink($tempOutputFilePath);
                     }
-                }
-                else {
+                } else {
 
                     $message = sprintf('PDF [%s] threw an error (%s) (O)', $unanalysedPdf->url, $e->getMessage());
                     $logger->warning($message);
                 }
-            }
-            finally
-            {
+            } finally {
 
                 $pdfParser = null;
             }
@@ -197,7 +191,8 @@ class CronController extends _BaseController {
 
     }
 
-    public static function checkPages(\Aiden\Models\Pdfs $unanalysedPdf, $pages) {
+    public static function checkPages(\Aiden\Models\Pdfs $unanalysedPdf, $pages)
+    {
 
         $di = \Phalcon\DI::getDefault();
         $config = $di->getConfig();
@@ -229,12 +224,12 @@ class CronController extends _BaseController {
                          * Attempt to generate excerpt by finding the 2 most outer empty elements
                          * Say we're looking for "accusantium", the 2 outer most empty elements are
                          * [1] and [5], so everything between those elements is considered an excerpt
-                         * 
+                         *
                          * [0] Lorem ipsum doler sit amet
                          * [1]
                          * [2] Sed ut perspiciatis unde omnis iste natus error sit
                          * [3] voluptatem accusantium doloremque laudantium
-                         * [4] totam rem aperiam, eaque ipsa 
+                         * [4] totam rem aperiam, eaque ipsa
                          * [5]
                          * [6] Other excerpt
                          */
@@ -267,13 +262,13 @@ class CronController extends _BaseController {
 
                         // Check if this match somehow magically already exists
                         $existingMatch = \Aiden\Models\Matches::findFirst([
-                                    'conditions' => 'pdf_id = :pdf_id: AND phrase_id = :phrase_id: AND excerpt = :excerpt: AND page = :page:',
-                                    'bind' => [
-                                        'pdf_id' => $unanalysedPdf->id,
-                                        'phrase_id' => $phrase->id,
-                                        'page' => $i,
-                                        'excerpt' => $excerpt
-                                    ]
+                            'conditions' => 'pdf_id = :pdf_id: AND phrase_id = :phrase_id: AND excerpt = :excerpt: AND page = :page:',
+                            'bind' => [
+                                'pdf_id' => $unanalysedPdf->id,
+                                'phrase_id' => $phrase->id,
+                                'page' => $i,
+                                'excerpt' => $excerpt
+                            ]
                         ]);
                         if ($existingMatch) {
 
@@ -295,13 +290,11 @@ class CronController extends _BaseController {
 
                             // Carry on after a paragraph when we already know it contains a phrase
                             $j = $excerptEndIndex;
-                        }
-
-                        // Couldn't save Match, model error
+                        } // Couldn't save Match, model error
                         else {
 
                             $message = sprintf('Could not save match for [%s] with phrase [%s]. (%s)'
-                                    , $unanalysedPdf->url, $phrase->text, print_r($match->getMessages()), true);
+                                , $unanalysedPdf->url, $phrase->text, print_r($match->getMessages()), true);
                             $logger->error($message);
 
                             continue;
@@ -321,7 +314,8 @@ class CronController extends _BaseController {
      * Loops through the `matches` table and generates a single email with
      * matched phrases in unprocessed PDFs
      */
-    public static function emailMatches() {
+    public static function emailMatches()
+    {
 
         set_time_limit(3600);
         $di = \Phalcon\DI::getDefault();
@@ -333,19 +327,19 @@ class CronController extends _BaseController {
 
         // Retrieve all ScrapeSources that have unprocessed matches
         $phql = "SELECT [Aiden\Models\ScrapeSources].*"
-                . " FROM [Aiden\Models\ScrapeSources]"
-                . " INNER JOIN [Aiden\Models\Pdfs]"
-                . " ON [Aiden\Models\Pdfs].scrape_sources_id = [Aiden\Models\ScrapeSources].id"
-                . " INNER JOIN [Aiden\Models\Matches]"
-                . " ON [Aiden\Models\Matches].pdf_id = [Aiden\Models\Pdfs].id"
-                . " WHERE 1=1"
-                . " AND [Aiden\Models\Matches].processed = 0"
-                . " GROUP BY [Aiden\Models\ScrapeSources].id";
+            . " FROM [Aiden\Models\ScrapeSources]"
+            . " INNER JOIN [Aiden\Models\Pdfs]"
+            . " ON [Aiden\Models\Pdfs].scrape_sources_id = [Aiden\Models\ScrapeSources].id"
+            . " INNER JOIN [Aiden\Models\Matches]"
+            . " ON [Aiden\Models\Matches].pdf_id = [Aiden\Models\Pdfs].id"
+            . " WHERE 1=1"
+            . " AND [Aiden\Models\Matches].processed = 0"
+            . " GROUP BY [Aiden\Models\ScrapeSources].id";
 
         $scrapeSources = $di->getModelsManager()->executeQuery($phql);
         $totalPdfs = [];
 
-       // $matches = [];
+        // $matches = [];
         $totalMatches = 0;
         $totalPhrases = 0;
         $totalPdfs = 0;
@@ -405,21 +399,19 @@ class CronController extends _BaseController {
 
             $to = '';
             foreach ($users as $user) {
-                if($user->email == 'jeraldfeller@gmail.com'){
+                if ($user->email == 'jeraldfeller@gmail.com') {
                     echo $user->email . '<br>';
                     $to .= $user->email . ',';
                 }
             }
             $to = rtrim($to, ',');
             $postFields['to'] = $to;
-        }
-        else {
+        } else {
 
             $postFields['to'] = $users[0]->email;
         }
 
-        var_dump($postFields);
-        /*
+
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_BASIC);
         curl_setopt($ch, CURLOPT_USERPWD, 'api:' . $config->application->mailgunApiKey);
@@ -464,8 +456,6 @@ class CronController extends _BaseController {
             $logger->error($message);
         }
 
-
-        */
     }
 
 }

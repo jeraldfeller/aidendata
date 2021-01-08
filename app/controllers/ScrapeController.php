@@ -14,10 +14,14 @@ class ScrapeController extends _BaseController
                 . ' OR last_crawl IS NULL'
                 . ' LIMIT ' . $this->config->application->amountOfUrlsPerScrape;
 
+        $sql = 'SELECT * FROM `scrape_urls`'
+            . ' WHERE scrape_sources_id = 53';
+
 
         $scrapeUrl = new \Aiden\Models\ScrapeUrls();
         $scrapeUrls = new \Phalcon\Mvc\Model\Resultset\Simple(null, $scrapeUrl, $scrapeUrl->getReadConnection()->query($sql));
 
+        var_dump($scrapeUrls);
         foreach ($scrapeUrls as $scrapeUrl) {
                 if ($scrapeUrl->ScrapeSource->name == 'Blacktown') {
                     $this->scrapeUrlBlacktown($scrapeUrl);
@@ -124,6 +128,9 @@ class ScrapeController extends _BaseController
             $adjacentUrls = [];
 
             // Limit the amount of requests by slicing and splicing the queued URL until empty
+            if($scrapeUrl->scrape_sources_id == 29){
+                $queuedUrls = array_splice($scrapedUrls, 200);
+            }
             while (count($queuedUrls) > 0) {
 
                 $itemsToSliceAndSplice = min([count($queuedUrls), $this->config->application->maxConcurrentRequests]); // Limit concurrent requests
@@ -333,6 +340,7 @@ class ScrapeController extends _BaseController
 
                         $endTime = microtime(true);
                         $executionSeconds = ceil(($endTime - $startTime) / 60);
+
 
                         $this->addPdfUrls($pdfUrls, $scrapeUrl->ScrapeSource);
 

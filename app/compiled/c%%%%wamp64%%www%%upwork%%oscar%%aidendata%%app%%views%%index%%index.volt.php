@@ -39,10 +39,11 @@
 
         <nav class="navbar navbar-expand-lg navbar-dark bg-transparent" role="navigation">
             <div class="container no-override">
-                <a class="navbar-brand" href="index">
+                <a class="navbar-brand" href="index" style="margin-right: 0!important;">
                     <img src="<?= $this->url->get('aiden/images/logo-alt-w.png') ?>" class="d-none d-lg-inline mr-2 w-25" />
                     Aiden
                 </a>
+                <img src="<?= $this->url->get('aiden/images/MIT-logo.png') ?>" class="d-none d-lg-inline mr-2" style="width: 130px;">
                 <button class="navbar-toggler" data-toggle="collapse" data-target="#navbar-collapse">
                     <span class="navbar-toggler-icon"></span>
                 </button>
@@ -63,10 +64,10 @@
         <div class="business-hero">
             <div class="container">
                 <h2 class="customFadeInUp">
-                    Aiden gathers actionable market intelligence by analyzing multiple data sources in real time
+                    Identifying Real Estate Development Opportunities: Web-Scraping, Regex Patterns & String-Searching Algorithms
                 </h2>
                 <p class="customFadeInUp">
-                    Identify, store and interpret valuable data
+                    © 2021 Oscar Williams. All Rights Reserved
                 </p>
 
                 <div class="actions customFadeInUp">

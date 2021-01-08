@@ -22,7 +22,7 @@ class AdminController extends _BaseController {
             . " WHERE 1=1"
             . " AND [Aiden\Models\Pdfs].checksum IS NOT NULL"
             . " GROUP BY [Aiden\Models\Pdfs].id"
-            . " ORDER BY [Aiden\Models\Pdfs].id DESC";
+            . " ORDER BY [Aiden\Models\Pdfs].last_checked DESC";
 
         $pdfsCount = count($this->modelsManager->executeQuery($phql));
         $totalPages = ceil($pdfsCount / $limit);
@@ -35,8 +35,9 @@ class AdminController extends _BaseController {
                 . " WHERE 1=1"
                 . " AND [Aiden\Models\Pdfs].checksum IS NOT NULL"
                 . " GROUP BY [Aiden\Models\Pdfs].id"
-                . " ORDER BY [Aiden\Models\Pdfs].id DESC"
+                . " ORDER BY [Aiden\Models\Pdfs].last_checked DESC"
                 . " LIMIT ".$offset.','.$limit;
+
 
         $pdfs = $this->modelsManager->executeQuery($phql);
 
