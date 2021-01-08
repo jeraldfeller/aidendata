@@ -10,7 +10,7 @@ return new \Phalcon\Config([
     ],
     'application' => [
         'title' => 'PDF Crawler',
-        'baseUri' => 'https://aidendata.com/', // End with /
+        'baseUri' => 'http://aidendata.com/', // End with /
         'curlUserAgent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36',
         'curlTimeout' => 300, // How long before a page times out
         'dev' => true, // Development mode, used for cURL VERIFYPEER & VERIFYHOST flags and VOLT-compiler compileAlways flag
